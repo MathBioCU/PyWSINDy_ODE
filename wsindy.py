@@ -17,18 +17,17 @@ class wsindy:
        trigs: sine / cosine frequencies to include in library
        scale_theta: normalize columns of theta. Ex: scale_theta = 0 means no normalization, scale_theta = 2 means l2 normalization.
        ld: sequential thresholding parameter 
-       tau_p: test function has value 10^-tau_p at penultimate support point. Or, if tau_p<0, directly sets poly degree p = -tau_p
        gamma: Tikhonoff regularization parameter
     """
-    def __init__(self, polys =  np.arange(0, 6), trigs = [], scaled_theta = 0, ld = 0.001, tau_p = 16, gamma = 10**(-np.inf), multiple_tracjectories = False):
+    def __init__(self, polys =  np.arange(0, 6), trigs = [], scaled_theta = 0, ld = 0.001, gamma = 10**(-np.inf), multiple_tracjectories = False, useGLS = 10**(-12)):
         self.polys = polys
         self.trigs = trigs
         self.scale_theta = scaled_theta
         self.ld = ld
-        self.tau_p = tau_p
         self.gamma = gamma
         self.coef = None
         self.multiple_trajectories = multiple_tracjectories
+        self.useGLS = useGLS
 
 
     """
@@ -38,10 +37,11 @@ class wsindy:
        s: test function support 
        K: # of test function
        p: test function degree 
-       tau: toggle adaptive grid
+       tau_p: test function has value 10^-tau_p at penultimate support point. Or, if tau_p<0, directly sets poly degree p = -tau_p
     """
-    def getWsindyAdaptive(self, xobs, tobs, r_whm = 30, s = 16, K = 120, p = 2, tau = 1, useGLS = 10**(-12)):
-
+    def getWsindyAdaptive(self, xobs, tobs, r_whm = 30, s = 16, K = 120, p = 2, tau_p = 16):
+        self.tau_p = tau_p
+        tau = 1
         if self.multiple_trajectories == True:
             x_values = xobs[0]
             t_values = tobs[0]
@@ -75,8 +75,8 @@ class wsindy:
             ts_grids.append(ab_grid)
             #Ys.append(Y)
             #print("use GLS = ", useGLS)
-            if useGLS > 0:
-                Cov = Vp.dot(Vp.T) + useGLS*np.identity(V.shape[0])
+            if self.useGLS > 0:
+                Cov = Vp.dot(Vp.T) + self.useGLS*np.identity(V.shape[0])
                 RT = np.linalg.cholesky(Cov)
                 G = lstsq(RT, V.dot(Theta_0))[0]
                 b = lstsq(RT, Vp.dot(xobs[:, i]))[0]
@@ -116,7 +116,7 @@ class wsindy:
        overlap: 
     """
     
-    def getWSindyUniform(self, xobs, tobs, L = 30, overlap = 0.5, useGLS = 10**(-12)):
+    def getWSindyUniform(self, xobs, tobs, L = 30, overlap = 0.5):
 
         if self.multiple_trajectories == True:
             x_values = xobs[0]
@@ -149,8 +149,8 @@ class wsindy:
             mats.append([V, Vp])
             ts_grids.append(grid)
 
-            if useGLS > 0:
-                Cov = Vp.dot(Vp.T) + useGLS*np.identity(V.shape[0])
+            if self.useGLS > 0:
+                Cov = Vp.dot(Vp.T) + self.useGLS*np.identity(V.shape[0])
                 RT = np.linalg.cholesky(Cov)
                 G = lstsq(RT, V.dot(Theta_0))[0]
                 b = lstsq(RT, Vp.dot(xobs[:, i]))[0]
